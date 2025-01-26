@@ -1,0 +1,13 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <div>
+        {% for item in items %}
+            <a href="{{ path('app_movie_edit', {'id': item.id}) }}">
+                <div>
+                    {{ item.title }}
+                </div>
+            </a>
+        {% endfor %}
+    </div>
+{% endblock %}

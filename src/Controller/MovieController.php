@@ -4,10 +4,11 @@ namespace App\Controller;
 
 use App\Elasticsearch\Movie\MovieClient;
 use App\Form\MovieType;
+use App\Transformer\Movie\MovieResponseTransformer;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapQueryParameter;
 use Symfony\Component\Routing\Annotation\Route;
 
 #[Route('/movie', name: 'app_movie_')]
@@ -15,22 +16,25 @@ class MovieController extends AbstractController
 {
 
     public function __construct(
-        private readonly MovieClient $movieClient,
+        private readonly MovieClient              $movieClient,
+        private readonly MovieResponseTransformer $movieResponseTransformer,
     )
     {
     }
 
-    #[Route('/init', name: 'init')]
-    public function init(): JsonResponse
+    #[Route('/list', name: 'list', methods: ['GET'])]
+    public function listAction(
+        #[MapQueryParameter]
+        ?int $page = 1,
+    ): Response
     {
-        try {
-            $this->movieClient->createIndex();
+        $item = $this->movieClient->search(page: $page);
 
-        } catch (\Exception $e) {
-            return new JsonResponse(['message' => $e->getMessage()]);
-        }
+        $item = ($this->movieResponseTransformer)($item);
 
-        return new JsonResponse(['message' => 'OK']);
+        return $this->render('movie/list.html.twig', [
+            'items' => $item,
+        ]);
     }
 
     #[Route('/edit/{id}', name: 'edit', methods: ['GET', 'POST'])]
@@ -48,7 +52,7 @@ class MovieController extends AbstractController
             return $this->redirectToRoute('app_movie_edit', ['id' => $id]);
         }
 
-        return $this->render('form/edit.html.twig', [
+        return $this->render('movie/edit.html.twig', [
             'form' => $form->createView(),
         ]);
     }
@@ -65,7 +69,7 @@ class MovieController extends AbstractController
             $this->movieClient->add($data);
         }
 
-        return $this->render('form/edit.html.twig', [
+        return $this->render('movie/edit.html.twig', [
             'form' => $form->createView(),
         ]);
     }

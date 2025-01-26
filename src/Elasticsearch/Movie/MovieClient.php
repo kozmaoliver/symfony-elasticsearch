@@ -22,6 +22,33 @@ class MovieClient extends Client
         $this->client->index($params);
     }
 
+    public function search(?string $keyword = null, int $page = 1, int $pageSize = 10): array
+    {
+        $params = [
+            'index' => self::INDEX,
+            'from' => ($page - 1)  * $pageSize,
+            'size' => $pageSize,
+        ];
+
+        if ($keyword) {
+            $params['body']['query'] = [
+                'match' => [
+                    'title' => $keyword,
+                ]
+            ];
+        }
+
+        $response = $this->client->search($params);
+
+        if ($response instanceof Promise) {
+            $response->then(function ($response) {
+                return $response->asArray();
+            });
+        }
+
+        return $response->asArray();
+    }
+
     public function get(string $id): array
     {
         $params = [
